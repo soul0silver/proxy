@@ -1,0 +1,64 @@
+import os
+import re
+import subprocess
+import time
+import random
+
+# Đường dẫn tới thư mục cài Squid và tệp cấu hình squid.conf
+SQUID_CONF_PATH = r'D:\Squid\etc\squid\squid.conf'  # Đảm bảo rằng bạn chỉnh lại đúng đường dẫn cho phù hợp hệ thống của bạn
+SQUID_SERVICE_NAME = 'squidsrv'  # Tên dịch vụ của Squid trên Windows (thường là "SquidService")
+
+# Hàm thay đổi cổng trong cấu hình Squid
+def change_squid_port(new_port):
+    try:
+        # Đọc nội dung file squid.conf
+        with open(SQUID_CONF_PATH, 'r', encoding='utf-8') as file:
+            squid_conf_content = file.read()
+
+        # Tìm kiếm dòng cấu hình http_port và thay thế với cổng mới
+        squid_conf_content = re.sub(r'http_port \d+', f'http_port {new_port}', squid_conf_content)
+
+        # Ghi lại nội dung mới vào file squid.conf
+        with open(SQUID_CONF_PATH, 'w', encoding='utf-8') as file:
+            file.write(squid_conf_content)
+
+        print(f"Đã thay đổi cổng Squid thành {new_port}.")
+    
+    except Exception as e:
+        print(f"Lỗi khi thay đổi cổng: {e}")
+
+# Hàm khởi động lại dịch vụ Squid trên Windows
+def restart_squid_service():
+    try:
+        # Dừng dịch vụ Squid
+        subprocess.run(['net', 'stop', SQUID_SERVICE_NAME], check=True)
+        print("Đã dừng dịch vụ Squid.")
+
+        # Đợi một chút trước khi khởi động lại
+        time.sleep(2)
+
+        # Khởi động lại dịch vụ Squid
+        subprocess.run(['net', 'start', SQUID_SERVICE_NAME], check=True)
+        print("Squid đã được khởi động lại thành công.")
+    
+    except subprocess.CalledProcessError as e:
+        print(f"Lỗi khi khởi động lại Squid: {e}")
+
+# Hàm chính để chạy script định kỳ
+def main():
+    while True:
+        # Tạo một cổng ngẫu nhiên trong phạm vi từ 1024 đến 65535
+        new_port = random.randint(1024, 65535)
+        print(f"Thay đổi cổng Squid thành {new_port}...")
+        
+        # Thay đổi port trong cấu hình Squid
+        change_squid_port(new_port)
+
+        # Khởi động lại dịch vụ Squid để áp dụng thay đổi
+        restart_squid_service()
+
+        # Đợi 1 phút trước khi thay đổi cổng lần tiếp theo
+        time.sleep(60)  # 60 giây = 1 phút
+
+if __name__ == "__main__":
+    main()
